@@ -42,17 +42,7 @@ const homeButton = el(
   "⌂ もくじ",
 );
 
-const counter = el("div", {
-  position: "fixed",
-  right: "20px",
-  bottom: "16px",
-  fontSize: "14px",
-  fontFamily: theme.fontFamily,
-  color: theme.muted,
-  zIndex: "10",
-});
-
-document.body.append(stage, homeButton, counter);
+document.body.append(stage, homeButton);
 
 let slides = [];
 let boardIndex = 1;
@@ -92,7 +82,7 @@ function show(index) {
   const previous = current;
   current = clampIndex(index);
   const slide = slides[current];
-  const node = renderSlide(slide, context);
+  const node = renderSlide(slide, context, { index: current, total: slides.length });
   stage.replaceChildren(node);
   const direction = current >= previous ? 1 : -1;
   // 横にスライドして切り替わるアニメーション(進むと戻るで向きを変える)。
@@ -106,7 +96,6 @@ function show(index) {
     );
   }
   animateSlide(node, direction);
-  counter.textContent = `${current + 1} / ${slides.length}`;
   homeButton.style.display = slide.meta.layout === "board" ? "none" : "block";
   if (location.hash !== `#${current + 1}`) {
     history.replaceState(null, "", `#${current + 1}`);

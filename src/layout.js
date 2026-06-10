@@ -368,7 +368,7 @@ function coverLayout(slide) {
   }
   const text = el("div", {
     position: "relative",
-    padding: "0 96px 84px",
+    padding: "0 96px 104px",
     display: "flex",
     flexDirection: "column",
     gap: "12px",
@@ -419,7 +419,7 @@ function galleryItemLayout(slide) {
 
   const text = el("div", {
     position: "relative",
-    padding: "0 96px 72px",
+    padding: "0 96px 96px",
     display: "flex",
     flexDirection: "column",
     gap: "10px",
@@ -539,7 +539,47 @@ const layouts = {
   board: boardLayout,
 };
 
-export function renderSlide(slide, ctx) {
+// マスターテンプレート:全スライド共通のフッター。
+// 左下に「名前 — スライドタイトル」、右下にページ番号を小さく載せる。
+const AUTHOR = "Kye Shimizu";
+
+function applyMasterTemplate(root, slide, pos) {
+  const footerText = {
+    position: "absolute",
+    bottom: "26px",
+    fontSize: "15px",
+    fontWeight: "500",
+    letterSpacing: "0.04em",
+    color: "rgba(244, 245, 247, 0.6)",
+    zIndex: "5",
+    margin: "0",
+  };
+  root.append(
+    el("div", {
+      position: "absolute",
+      left: "36px",
+      right: "36px",
+      bottom: "58px",
+      height: "1px",
+      background: "rgba(255, 255, 255, 0.12)",
+      zIndex: "5",
+    }),
+    el(
+      "p",
+      { ...footerText, left: "36px" },
+      `${AUTHOR}${slide.meta.title ? ` — ${slide.meta.title}` : ""}`,
+    ),
+    el(
+      "p",
+      { ...footerText, right: "36px" },
+      `${pos.index + 1} / ${pos.total}`,
+    ),
+  );
+}
+
+export function renderSlide(slide, ctx, pos) {
   const layout = layouts[slide.meta.layout] ?? contentLayout;
-  return layout(slide, ctx);
+  const root = layout(slide, ctx);
+  if (pos) applyMasterTemplate(root, slide, pos);
+  return root;
 }
