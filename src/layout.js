@@ -115,6 +115,14 @@ function renderBlock(block) {
     }
     case "ul":
     case "ol": {
+      // 1 スライドの箇条書きは最大 3 つまで。超えた分は表示しない。
+      const MAX_BULLETS = 3;
+      if (block.items.length > MAX_BULLETS) {
+        console.warn(
+          `箇条書きが ${block.items.length} 個あります。最大 ${MAX_BULLETS} 個までしか表示されません:`,
+          block.items[MAX_BULLETS],
+        );
+      }
       const list = el(block.type === "ol" ? "ol" : "ul", {
         margin: "0",
         paddingLeft: "1.4em",
@@ -122,7 +130,7 @@ function renderBlock(block) {
         flexDirection: "column",
         gap: "18px",
       });
-      for (const item of block.items) {
+      for (const item of block.items.slice(0, MAX_BULLETS)) {
         list.append(
           animated(
             el("li", { fontSize: "26px", lineHeight: "1.55" }, inline(item)),
@@ -223,7 +231,8 @@ function goalLayout(slide) {
   return root;
 }
 
-// 経歴タイムライン:3 文字の頭字語を矢印でつなぐ。`???` のノードはオチ用。
+// 経歴タイムライン:`## 頭字語` + ロゴ画像 + ひとことのグループを矢印でつなぐ。
+// `???` のノードはオチ用(ロゴは複数並べられる)。
 function timelineLayout(slide) {
   const root = slideRoot();
   root.append(kicker(slide.meta.kicker), heading(slide.meta.title));
@@ -240,21 +249,29 @@ function timelineLayout(slide) {
   }
   root.append(accentBar());
 
-  const items = slide.blocks.find((b) => b.type === "ul")?.items ?? [];
+  const stops = [];
+  let stop = null;
+  for (const block of slide.blocks) {
+    if (block.type === "h2") {
+      stop = { name: block.text, logos: [], desc: "" };
+      stops.push(stop);
+    } else if (stop && block.type === "img") {
+      stop.logos.push(block);
+    } else if (stop && block.type === "p") {
+      stop.desc = block.text;
+    }
+  }
+
   const row = el("div", {
     display: "flex",
-    alignItems: "stretch",
+    alignItems: "center",
     gap: "20px",
     flex: "1",
     marginTop: "48px",
-    alignItems: "center",
   });
 
-  items.forEach((item, idx) => {
-    const m = /^\*\*([^*]+)\*\*\s*[—-]\s*(.*)$/.exec(item);
-    const name = m ? m[1] : item;
-    const desc = m ? m[2] : "";
-    const isPun = name.includes("?");
+  stops.forEach((entry, idx) => {
+    const isPun = entry.name.includes("?");
     if (idx > 0) {
       row.append(
         animated(
@@ -266,6 +283,32 @@ function timelineLayout(slide) {
         ),
       );
     }
+    // ロゴは白いチップに載せて、ダークテーマでも見えるようにする。
+    const logoChip = el(
+      "div",
+      {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "14px",
+        width: "100%",
+        height: "88px",
+        padding: "14px 18px",
+        boxSizing: "border-box",
+        background: "#ffffff",
+        borderRadius: "14px",
+      },
+      entry.logos.map((logo) => {
+        const img = el("img", {
+          maxHeight: "100%",
+          maxWidth: entry.logos.length > 1 ? "44%" : "85%",
+          objectFit: "contain",
+        });
+        img.src = logo.src;
+        img.alt = logo.alt;
+        return img;
+      }),
+    );
     row.append(
       animated(
         el(
@@ -276,28 +319,29 @@ function timelineLayout(slide) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "14px",
-            padding: "40px 16px",
+            gap: "16px",
+            padding: "28px 16px",
             textAlign: "center",
             background: isPun ? theme.accentDim : theme.surface,
             border: isPun ? `2px dashed ${theme.accent}` : `1px solid ${theme.border}`,
             borderRadius: "20px",
           },
           [
+            logoChip,
             el(
               "div",
               {
-                fontSize: "60px",
+                fontSize: "44px",
                 fontWeight: "900",
                 letterSpacing: "0.06em",
                 color: isPun ? theme.accent : theme.text,
               },
-              name,
+              entry.name,
             ),
             el(
               "div",
-              { fontSize: "17px", lineHeight: "1.5", color: theme.muted },
-              inline(desc),
+              { fontSize: "16px", lineHeight: "1.5", color: theme.muted },
+              inline(entry.desc),
             ),
           ],
         ),
