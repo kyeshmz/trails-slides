@@ -231,8 +231,160 @@ function goalLayout(slide) {
   return root;
 }
 
-// 経歴タイムライン:`## 頭字語` + ロゴ画像 + ひとことのグループを矢印でつなぐ。
-// `???` のノードはオチ用(ロゴは複数並べられる)。
+// SVG 要素用ヘルパー(エッジの描画に使う)。
+function svgEl(tag, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  return node;
+}
+
+// 2 軸チャート:x 軸 / y 軸(`x:` `y:` フロントマター)の上に点を打つ。
+// 本文の `- ラベル | x | y`(0〜100)が点。`*` で始まるラベルはアクセント色。
+// `link: A -- B` で 2 点を破線でつなぐ(「同じ話でも相手で実用性が変わる」用)。
+function chartLayout(slide) {
+  const root = slideRoot();
+  root.append(kicker(slide.meta.kicker), heading(slide.meta.title, "48px"));
+  if (slide.meta.subtitle) {
+    root.append(
+      animated(
+        el(
+          "p",
+          { margin: "10px 0 0", fontSize: "26px", fontWeight: "500", color: theme.muted },
+          slide.meta.subtitle,
+        ),
+      ),
+    );
+  }
+  root.append(accentBar());
+
+  const points = [];
+  for (const item of slide.blocks.find((b) => b.type === "ul")?.items ?? []) {
+    const m = /^(\*?)\s*(.+?)\s*\|\s*(\d+)\s*\|\s*(\d+)$/.exec(item);
+    if (!m) continue;
+    points.push({ accent: m[1] === "*", label: m[2], x: Number(m[3]), y: Number(m[4]) });
+  }
+
+  // 軸ラベルの分だけ余白を取ったチャート領域。座標は % で配置する。
+  const area = el("div", {
+    position: "relative",
+    flex: "1",
+    margin: "20px 24px 34px 56px",
+  });
+  const toTop = (y) => 100 - y; // y は上が大きい値になるように反転
+
+  // 軸(下と左)と中央の補助線。
+  area.append(
+    el("div", { position: "absolute", left: "0", right: "0", bottom: "0", height: "2px", background: "rgba(255,255,255,0.35)" }),
+    el("div", { position: "absolute", left: "0", top: "0", bottom: "0", width: "2px", background: "rgba(255,255,255,0.35)" }),
+    el("div", { position: "absolute", left: "50%", top: "0", bottom: "0", width: "1px", background: "rgba(255,255,255,0.08)" }),
+    el("div", { position: "absolute", left: "0", right: "0", top: "50%", height: "1px", background: "rgba(255,255,255,0.08)" }),
+    // 軸の矢印とラベル
+    el("div", { position: "absolute", right: "-6px", bottom: "-7px", fontSize: "16px", color: "rgba(255,255,255,0.55)" }, "▶"),
+    el("div", { position: "absolute", left: "-7px", top: "-8px", fontSize: "16px", color: "rgba(255,255,255,0.55)" }, "▲"),
+    animated(
+      el(
+        "div",
+        {
+          position: "absolute",
+          right: "0",
+          bottom: "-34px",
+          fontSize: "20px",
+          fontWeight: "700",
+          color: theme.muted,
+        },
+        `${slide.meta.x ?? "x"} →`,
+      ),
+    ),
+    animated(
+      el(
+        "div",
+        {
+          position: "absolute",
+          left: "12px",
+          top: "-6px",
+          fontSize: "20px",
+          fontWeight: "700",
+          color: theme.muted,
+        },
+        `↑ ${slide.meta.y ?? "y"}`,
+      ),
+    ),
+  );
+
+  // link: A -- B の 2 点を破線でつなぐ。
+  const linkMatch = /^(.+?)\s*--\s*(.+)$/.exec(slide.meta.link ?? "");
+  if (linkMatch) {
+    const a = points.find((p) => p.label === linkMatch[1].trim());
+    const b = points.find((p) => p.label === linkMatch[2].trim());
+    if (a && b) {
+      const svg = svgEl("svg", {
+        viewBox: "0 0 100 100",
+        preserveAspectRatio: "none",
+        style: "position:absolute;inset:0;width:100%;height:100%;overflow:visible",
+      });
+      svg.append(
+        svgEl("line", {
+          x1: a.x, y1: toTop(a.y), x2: b.x, y2: toTop(b.y),
+          stroke: "rgba(94,234,212,0.6)",
+          "stroke-width": "2",
+          "stroke-dasharray": "7 7",
+          "vector-effect": "non-scaling-stroke",
+        }),
+      );
+      svg.dataset.animate = "";
+      area.append(svg);
+    }
+  }
+
+  // 点とラベル。
+  for (const point of points) {
+    const color = point.accent ? theme.accent : "#aab1bd";
+    area.append(
+      animated(
+        el(
+          "div",
+          {
+            position: "absolute",
+            left: `${point.x}%`,
+            top: `${toTop(point.y)}%`,
+            transform: "translate(-50%, -50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+          },
+          [
+            el(
+              "div",
+              {
+                padding: "8px 18px",
+                borderRadius: "999px",
+                fontSize: "20px",
+                fontWeight: "700",
+                whiteSpace: "nowrap",
+                color: point.accent ? theme.accent : theme.text,
+                background: point.accent ? theme.accentDim : theme.surface,
+                border: point.accent ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`,
+              },
+              point.label,
+            ),
+            el("div", {
+              width: "16px",
+              height: "16px",
+              borderRadius: "50%",
+              background: color,
+              boxShadow: `0 0 0 5px ${point.accent ? "rgba(94,234,212,0.2)" : "rgba(255,255,255,0.08)"}`,
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+  root.append(area);
+  return root;
+}
+
+// 経歴タイムライン:`## 頭字語` + ロゴ画像 + ひとことのグループを矢印でつなぐ。// `???` のノードはオチ用(ロゴは複数並べられる)。
 function timelineLayout(slide) {
   const root = slideRoot();
   root.append(kicker(slide.meta.kicker), heading(slide.meta.title));
@@ -533,6 +685,7 @@ function boardLayout(slide, ctx) {
 const layouts = {
   content: contentLayout,
   goal: goalLayout,
+  chart: chartLayout,
   timeline: timelineLayout,
   cover: coverLayout,
   galleryItem: galleryItemLayout,

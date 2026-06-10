@@ -5,6 +5,7 @@ export const manifest = [
   "01-intro.md",
   "04-works.md",
   "02-goal.md",
+  "05-goal-chart.md",
   "03-education.md",
   "10-money-cover.md",
   "11-money.md",
