@@ -1,6 +1,6 @@
 ---
 layout: content
-kicker: お金 2 / 2
+kicker: お金 2 / 4
 title: お金がもたらすもの
 ---
 

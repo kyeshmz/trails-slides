@@ -21,40 +21,53 @@ function slideRoot(extra = {}) {
   });
 }
 
+// data-animate の付いた要素は、スライド表示時に main.js が順番にアニメーションさせる。
+function animated(node) {
+  if (node) node.dataset.animate = "";
+  return node;
+}
+
 function kicker(text) {
   if (!text) return null;
-  return el(
-    "p",
-    {
-      margin: "0 0 16px",
-      fontSize: "20px",
-      fontWeight: "700",
-      letterSpacing: "0.2em",
-      color: theme.accent,
-    },
-    text,
+  return animated(
+    el(
+      "p",
+      {
+        margin: "0 0 16px",
+        fontSize: "20px",
+        fontWeight: "700",
+        letterSpacing: "0.2em",
+        color: theme.accent,
+      },
+      text,
+    ),
   );
 }
 
 function heading(text, size = "56px") {
-  return el(
-    "h1",
-    { margin: "0", fontSize: size, fontWeight: "900", lineHeight: "1.25" },
-    inline(text),
+  return animated(
+    el(
+      "h1",
+      { margin: "0", fontSize: size, fontWeight: "900", lineHeight: "1.25" },
+      inline(text),
+    ),
   );
 }
 
 function accentBar() {
-  return el("div", {
-    width: "96px",
-    height: "6px",
-    margin: "24px 0 0",
-    borderRadius: "3px",
-    background: theme.accent,
-  });
+  return animated(
+    el("div", {
+      width: "96px",
+      height: "6px",
+      margin: "24px 0 0",
+      borderRadius: "3px",
+      background: theme.accent,
+    }),
+  );
 }
 
 // スライド全面に敷く背景画像と、文字を読みやすくするグラデーション。
+// 画像には data-kenburns が付き、表示中ゆっくりズームする。
 function fullBleedImage(src, gradient) {
   const img = el("img", {
     position: "absolute",
@@ -65,6 +78,7 @@ function fullBleedImage(src, gradient) {
   });
   img.src = src;
   img.alt = "";
+  img.dataset.kenburns = "";
   const shade = el("div", { position: "absolute", inset: "0", background: gradient });
   return [img, shade];
 }
@@ -73,16 +87,20 @@ function fullBleedImage(src, gradient) {
 function renderBlock(block) {
   switch (block.type) {
     case "h2":
-      return el(
-        "h2",
-        { margin: "0 0 4px", fontSize: "26px", fontWeight: "700", color: theme.accent },
-        inline(block.text),
+      return animated(
+        el(
+          "h2",
+          { margin: "0 0 4px", fontSize: "26px", fontWeight: "700", color: theme.accent },
+          inline(block.text),
+        ),
       );
     case "h3":
-      return el(
-        "h3",
-        { margin: "8px 0 0", fontSize: "22px", fontWeight: "700" },
-        inline(block.text),
+      return animated(
+        el(
+          "h3",
+          { margin: "8px 0 0", fontSize: "22px", fontWeight: "700" },
+          inline(block.text),
+        ),
       );
     case "img": {
       const img = el("img", {
@@ -93,7 +111,7 @@ function renderBlock(block) {
       });
       img.src = block.src;
       img.alt = block.alt;
-      return img;
+      return animated(img);
     }
     case "ul":
     case "ol": {
@@ -106,28 +124,34 @@ function renderBlock(block) {
       });
       for (const item of block.items) {
         list.append(
-          el("li", { fontSize: "26px", lineHeight: "1.55" }, inline(item)),
+          animated(
+            el("li", { fontSize: "26px", lineHeight: "1.55" }, inline(item)),
+          ),
         );
       }
       return list;
     }
     case "quote":
-      return el(
-        "blockquote",
-        {
-          margin: "0",
-          padding: "12px 24px",
-          borderLeft: `4px solid ${theme.accent}`,
-          fontSize: "24px",
-          color: theme.muted,
-        },
-        inline(block.text),
+      return animated(
+        el(
+          "blockquote",
+          {
+            margin: "0",
+            padding: "12px 24px",
+            borderLeft: `4px solid ${theme.accent}`,
+            fontSize: "24px",
+            color: theme.muted,
+          },
+          inline(block.text),
+        ),
       );
     default:
-      return el(
-        "p",
-        { margin: "0", fontSize: "26px", lineHeight: "1.6" },
-        inline(block.text),
+      return animated(
+        el(
+          "p",
+          { margin: "0", fontSize: "26px", lineHeight: "1.6" },
+          inline(block.text),
+        ),
       );
   }
 }
@@ -174,7 +198,7 @@ function goalLayout(slide) {
   });
   items.forEach((item, idx) => {
     list.append(
-      el("div", { display: "flex", gap: "28px", alignItems: "center" }, [
+      animated(el("div", { display: "flex", gap: "28px", alignItems: "center" }, [
         el(
           "div",
           {
@@ -192,10 +216,95 @@ function goalLayout(slide) {
           String(idx + 1),
         ),
         el("div", { fontSize: "38px", fontWeight: "700" }, inline(item)),
-      ]),
+      ])),
     );
   });
   root.append(list);
+  return root;
+}
+
+// 経歴タイムライン:3 文字の頭字語を矢印でつなぐ。`???` のノードはオチ用。
+function timelineLayout(slide) {
+  const root = slideRoot();
+  root.append(kicker(slide.meta.kicker), heading(slide.meta.title));
+  if (slide.meta.subtitle) {
+    root.append(
+      animated(
+        el(
+          "p",
+          { margin: "12px 0 0", fontSize: "28px", fontWeight: "500", color: theme.muted },
+          slide.meta.subtitle,
+        ),
+      ),
+    );
+  }
+  root.append(accentBar());
+
+  const items = slide.blocks.find((b) => b.type === "ul")?.items ?? [];
+  const row = el("div", {
+    display: "flex",
+    alignItems: "stretch",
+    gap: "20px",
+    flex: "1",
+    marginTop: "48px",
+    alignItems: "center",
+  });
+
+  items.forEach((item, idx) => {
+    const m = /^\*\*([^*]+)\*\*\s*[—-]\s*(.*)$/.exec(item);
+    const name = m ? m[1] : item;
+    const desc = m ? m[2] : "";
+    const isPun = name.includes("?");
+    if (idx > 0) {
+      row.append(
+        animated(
+          el(
+            "div",
+            { fontSize: "40px", fontWeight: "900", color: theme.accent, flex: "0 0 auto" },
+            "→",
+          ),
+        ),
+      );
+    }
+    row.append(
+      animated(
+        el(
+          "div",
+          {
+            flex: "1",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "14px",
+            padding: "40px 16px",
+            textAlign: "center",
+            background: isPun ? theme.accentDim : theme.surface,
+            border: isPun ? `2px dashed ${theme.accent}` : `1px solid ${theme.border}`,
+            borderRadius: "20px",
+          },
+          [
+            el(
+              "div",
+              {
+                fontSize: "60px",
+                fontWeight: "900",
+                letterSpacing: "0.06em",
+                color: isPun ? theme.accent : theme.text,
+              },
+              name,
+            ),
+            el(
+              "div",
+              { fontSize: "17px", lineHeight: "1.5", color: theme.muted },
+              inline(desc),
+            ),
+          ],
+        ),
+      ),
+    );
+  });
+  root.append(row);
   return root;
 }
 
@@ -224,10 +333,12 @@ function coverLayout(slide) {
   text.append(heading(slide.meta.title, "96px"));
   if (slide.meta.subtitle) {
     text.append(
-      el(
-        "p",
-        { margin: "0", fontSize: "30px", fontWeight: "500", color: "rgba(244,245,247,0.85)" },
-        slide.meta.subtitle,
+      animated(
+        el(
+          "p",
+          { margin: "0", fontSize: "30px", fontWeight: "500", color: "rgba(244,245,247,0.85)" },
+          slide.meta.subtitle,
+        ),
       ),
     );
   }
@@ -245,7 +356,7 @@ function galleryItemLayout(slide) {
     ),
   );
 
-  const progress = el(
+  const progress = animated(el(
     "div",
     {
       position: "absolute",
@@ -260,7 +371,7 @@ function galleryItemLayout(slide) {
       background: "rgba(10,11,15,0.45)",
     },
     `${slide.meta.kicker}  ${String(slide.meta.index + 1).padStart(2, "0")} / ${String(slide.meta.total).padStart(2, "0")}`,
-  );
+  ));
 
   const text = el("div", {
     position: "relative",
@@ -272,10 +383,12 @@ function galleryItemLayout(slide) {
   text.append(heading(slide.meta.title, "56px"));
   if (slide.meta.caption) {
     text.append(
-      el(
-        "p",
-        { margin: "0", fontSize: "27px", fontWeight: "500", color: "rgba(244,245,247,0.88)" },
-        slide.meta.caption,
+      animated(
+        el(
+          "p",
+          { margin: "0", fontSize: "27px", fontWeight: "500", color: "rgba(244,245,247,0.88)" },
+          slide.meta.caption,
+        ),
       ),
     );
   }
@@ -367,7 +480,7 @@ function boardLayout(slide, ctx) {
       event.stopPropagation();
       ctx.goTo(index);
     });
-    grid.append(card);
+    grid.append(animated(card));
   });
   root.append(grid);
   return root;
@@ -376,6 +489,7 @@ function boardLayout(slide, ctx) {
 const layouts = {
   content: contentLayout,
   goal: goalLayout,
+  timeline: timelineLayout,
   cover: coverLayout,
   galleryItem: galleryItemLayout,
   board: boardLayout,

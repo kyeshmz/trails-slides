@@ -64,23 +64,48 @@ function clampIndex(index) {
 
 const context = { get slides() { return slides; }, goTo: (i) => show(i) };
 
+// スライド内の要素を順番にふわっと出し、背景写真はゆっくりズームさせる。
+function animateSlide(node, direction) {
+  node.querySelectorAll("[data-animate]").forEach((target, i) => {
+    target.animate(
+      [
+        { opacity: 0, transform: `translateY(28px) translateX(${direction * 16}px)` },
+        { opacity: 1, transform: "translate(0, 0)" },
+      ],
+      {
+        duration: 520,
+        delay: 90 * i,
+        easing: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+        fill: "backwards",
+      },
+    );
+  });
+  node.querySelectorAll("[data-kenburns]").forEach((img) => {
+    img.animate(
+      [{ transform: "scale(1)" }, { transform: "scale(1.07)" }],
+      { duration: 14000, easing: "linear", fill: "forwards" },
+    );
+  });
+}
+
 function show(index) {
   const previous = current;
   current = clampIndex(index);
   const slide = slides[current];
   const node = renderSlide(slide, context);
   stage.replaceChildren(node);
+  const direction = current >= previous ? 1 : -1;
   // 横にスライドして切り替わるアニメーション(進むと戻るで向きを変える)。
   if (current !== previous) {
-    const dx = current > previous ? 48 : -48;
     node.animate(
       [
-        { opacity: 0, transform: `translateX(${dx}px)` },
+        { opacity: 0, transform: `translateX(${direction * 48}px)` },
         { opacity: 1, transform: "translateX(0)" },
       ],
       { duration: 260, easing: "ease-out" },
     );
   }
+  animateSlide(node, direction);
   counter.textContent = `${current + 1} / ${slides.length}`;
   homeButton.style.display = slide.meta.layout === "board" ? "none" : "block";
   if (location.hash !== `#${current + 1}`) {

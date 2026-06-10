@@ -1,6 +1,6 @@
 ---
 layout: content
-kicker: お金 1 / 2
+kicker: お金 1 / 4
 title: お金は目的ではなく手段
 ---
 
