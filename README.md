@@ -21,14 +21,16 @@ python3 -m http.server 8000
 
 - `slides/*.md` — スライド本文(フロントマター + Markdown)
 - `slides/manifest.js` — スライドの表示順
-- `src/markdown.js` — フロントマター + Markdown パーサ
-- `src/layout.js` — レイアウトエンジン(`content` / `columns` / `goal` / `board`)
-- `src/main.js` — 読み込み・ナビゲーション・もくじ挿入・ホームボタン
+- `assets/` — kyeshimizu.com から取得した作品写真・カテゴリ写真
+- `src/markdown.js` — フロントマター + Markdown パーサ(画像 `![]()` 対応)
+- `src/layout.js` — レイアウトエンジン(`content` / `goal` / `cover` / `galleryItem` / `board`)
+- `src/main.js` — 読み込み・ナビゲーション・ギャラリー展開・もくじ挿入・ホームボタン
 - `src/theme.js`, `src/dom.js` — デザイントークンと DOM ヘルパー
 
-スライドの並びは `1. 自己紹介` → `2. もくじ(ボード)` → `3. ゴール` →
-`4. 自己紹介2` → `5. お金` → `6. お金がもたらすもの`。もくじは 2 番目の
-スライドとして自動挿入されます(`main.js`)。
+並びは `自己紹介` → `もくじ(ボード)` → `ゴール` → `作品ギャラリー(8 枚)` →
+`お金(扉 + 2 枚)` → `環境` → `旅` → `仕事` → `ストーリーテリング`。
+もくじは 2 番目のスライドとして自動挿入され、カテゴリの章扉
+(`layout: cover`)が写真カードとして並びます。
 
 ## 操作
 
@@ -46,14 +48,17 @@ python3 -m http.server 8000
 
 ```md
 ---
-layout: content      # content / columns / goal
+layout: content      # content / goal / cover / gallery
 kicker: セクション名
 title: タイトル
 subtitle: サブタイトル   # 任意
+image: assets/...     # cover で使う背景写真
 ---
 
 - **ラベル** — 本文
 ```
 
-`columns` レイアウトでは `## 見出し` ごとに横並びのカラムになります。新しい
-レイアウトは `src/layout.js` に関数を足して `layouts` に登録します。
+`gallery` レイアウトは `## 作品名` + `![](画像)` + ひとことの繰り返しで書き、
+1 作品 = 1 スライドに展開されて順番に送れます。`cover`(章扉)を追加すると
+もくじのカードにも自動で並びます。新しいレイアウトは `src/layout.js` に
+関数を足して `layouts` に登録します。

@@ -29,7 +29,7 @@ export function parseBlocks(md) {
   const blocks = [];
   let i = 0;
   const isSpecial = (l) =>
-    /^(#{1,3}\s|\s*[-*]\s|\s*\d+\.\s|\s*>\s?)/.test(l);
+    /^(#{1,3}\s|\s*[-*]\s|\s*\d+\.\s|\s*>\s?|!\[)/.test(l);
 
   while (i < lines.length) {
     const line = lines[i];
@@ -38,7 +38,10 @@ export function parseBlocks(md) {
       continue;
     }
     let m;
-    if ((m = /^(#{1,3})\s+(.*)$/.exec(line))) {
+    if ((m = /^!\[([^\]]*)\]\(([^)]+)\)\s*$/.exec(line))) {
+      blocks.push({ type: "img", alt: m[1], src: m[2] });
+      i++;
+    } else if ((m = /^(#{1,3})\s+(.*)$/.exec(line))) {
       blocks.push({ type: `h${m[1].length}`, text: m[2] });
       i++;
     } else if (/^\s*[-*]\s+/.test(line)) {

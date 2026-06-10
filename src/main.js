@@ -65,9 +65,22 @@ function clampIndex(index) {
 const context = { get slides() { return slides; }, goTo: (i) => show(i) };
 
 function show(index) {
+  const previous = current;
   current = clampIndex(index);
   const slide = slides[current];
-  stage.replaceChildren(renderSlide(slide, context));
+  const node = renderSlide(slide, context);
+  stage.replaceChildren(node);
+  // 横にスライドして切り替わるアニメーション(進むと戻るで向きを変える)。
+  if (current !== previous) {
+    const dx = current > previous ? 48 : -48;
+    node.animate(
+      [
+        { opacity: 0, transform: `translateX(${dx}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 260, easing: "ease-out" },
+    );
+  }
   counter.textContent = `${current + 1} / ${slides.length}`;
   homeButton.style.display = slide.meta.layout === "board" ? "none" : "block";
   if (location.hash !== `#${current + 1}`) {
@@ -123,8 +136,39 @@ async function loadSlide(file) {
   return { meta, blocks: parseBlocks(body) };
 }
 
+// gallery レイアウトの Markdown(`## 作品名` + 画像 + ひとこと)を、
+// 1 作品 = 1 スライドに展開して順番に送れるようにする。
+function expandGallery(doc) {
+  const items = [];
+  let item = null;
+  for (const block of doc.blocks) {
+    if (block.type === "h2") {
+      item = { title: block.text, image: null, caption: "" };
+      items.push(item);
+    } else if (item && block.type === "img") {
+      item.image = block.src;
+    } else if (item && block.type === "p") {
+      item.caption = block.text;
+    }
+  }
+  return items.map((entry, index) => ({
+    meta: {
+      layout: "galleryItem",
+      kicker: doc.meta.kicker ?? "WORKS",
+      title: entry.title,
+      image: entry.image,
+      caption: entry.caption,
+      index,
+      total: items.length,
+    },
+    blocks: [],
+  }));
+}
+
 async function init() {
-  const docs = await Promise.all(manifest.map(loadSlide));
+  const docs = (await Promise.all(manifest.map(loadSlide))).flatMap((doc) =>
+    doc.meta.layout === "gallery" ? expandGallery(doc) : [doc],
+  );
   // もくじ(ボード)を 2 番目のスライドとして挿入する。
   const board = { meta: { layout: "board", kicker: "INDEX", title: "もくじ" }, blocks: [] };
   docs.splice(boardIndex, 0, board);

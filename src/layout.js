@@ -54,6 +54,21 @@ function accentBar() {
   });
 }
 
+// スライド全面に敷く背景画像と、文字を読みやすくするグラデーション。
+function fullBleedImage(src, gradient) {
+  const img = el("img", {
+    position: "absolute",
+    inset: "0",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  });
+  img.src = src;
+  img.alt = "";
+  const shade = el("div", { position: "absolute", inset: "0", background: gradient });
+  return [img, shade];
+}
+
 // 1 つの Markdown ブロックを DOM に変換する。
 function renderBlock(block) {
   switch (block.type) {
@@ -69,6 +84,17 @@ function renderBlock(block) {
         { margin: "8px 0 0", fontSize: "22px", fontWeight: "700" },
         inline(block.text),
       );
+    case "img": {
+      const img = el("img", {
+        maxWidth: "100%",
+        maxHeight: "320px",
+        borderRadius: "16px",
+        objectFit: "cover",
+      });
+      img.src = block.src;
+      img.alt = block.alt;
+      return img;
+    }
     case "ul":
     case "ol": {
       const list = el(block.type === "ol" ? "ol" : "ul", {
@@ -76,11 +102,11 @@ function renderBlock(block) {
         paddingLeft: "1.4em",
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "18px",
       });
       for (const item of block.items) {
         list.append(
-          el("li", { fontSize: "23px", lineHeight: "1.55" }, inline(item)),
+          el("li", { fontSize: "26px", lineHeight: "1.55" }, inline(item)),
         );
       }
       return list;
@@ -100,13 +126,13 @@ function renderBlock(block) {
     default:
       return el(
         "p",
-        { margin: "0", fontSize: "23px", lineHeight: "1.6" },
+        { margin: "0", fontSize: "26px", lineHeight: "1.6" },
         inline(block.text),
       );
   }
 }
 
-// 見出し + サブタイトル + 本文を縦に積む標準レイアウト。
+// 見出し + 本文を縦に積む標準レイアウト。
 function contentLayout(slide) {
   const root = slideRoot();
   root.append(kicker(slide.meta.kicker), heading(slide.meta.title));
@@ -124,46 +150,13 @@ function contentLayout(slide) {
   const body = el("div", {
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
-    marginTop: "40px",
+    gap: "22px",
+    marginTop: "44px",
+    justifyContent: "center",
+    flex: "1",
   });
   for (const block of slide.blocks) body.append(renderBlock(block));
   root.append(body);
-  return root;
-}
-
-// `## 見出し` ごとにカラムを分けて横並びにするレイアウト。
-function columnsLayout(slide) {
-  const root = slideRoot();
-  root.append(kicker(slide.meta.kicker), heading(slide.meta.title), accentBar());
-
-  const columns = el("div", {
-    display: "flex",
-    gap: "48px",
-    marginTop: "40px",
-    flex: "1",
-  });
-
-  let column = null;
-  for (const block of slide.blocks) {
-    if (block.type === "h2") {
-      column = el("div", {
-        flex: "1",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-        padding: "28px",
-        background: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: "16px",
-      });
-      column.append(renderBlock(block));
-      columns.append(column);
-    } else if (column) {
-      column.append(renderBlock(block));
-    }
-  }
-  root.append(columns);
   return root;
 }
 
@@ -206,49 +199,169 @@ function goalLayout(slide) {
   return root;
 }
 
-// もくじ(ボード):全スライドを 1 ページに並べ、クリックでそのスライドへジャンプ。
+// 章扉:全面写真の上にカテゴリ名を大きく載せる。
+function coverLayout(slide) {
+  const root = slideRoot({
+    padding: "0",
+    justifyContent: "flex-end",
+  });
+  if (slide.meta.image) {
+    root.append(
+      ...fullBleedImage(
+        slide.meta.image,
+        "linear-gradient(to top, rgba(10,11,15,0.92) 0%, rgba(10,11,15,0.35) 55%, rgba(10,11,15,0.25) 100%)",
+      ),
+    );
+  }
+  const text = el("div", {
+    position: "relative",
+    padding: "0 96px 84px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  });
+  if (slide.meta.kicker) text.append(kicker(slide.meta.kicker));
+  text.append(heading(slide.meta.title, "96px"));
+  if (slide.meta.subtitle) {
+    text.append(
+      el(
+        "p",
+        { margin: "0", fontSize: "30px", fontWeight: "500", color: "rgba(244,245,247,0.85)" },
+        slide.meta.subtitle,
+      ),
+    );
+  }
+  root.append(text);
+  return root;
+}
+
+// 作品ギャラリーの 1 枚:全面写真 + タイトル + ひとこと。矢印キーで次々に送る。
+function galleryItemLayout(slide) {
+  const root = slideRoot({ padding: "0", justifyContent: "flex-end" });
+  root.append(
+    ...fullBleedImage(
+      slide.meta.image,
+      "linear-gradient(to top, rgba(10,11,15,0.9) 0%, rgba(10,11,15,0.2) 45%, rgba(10,11,15,0.1) 100%)",
+    ),
+  );
+
+  const progress = el(
+    "div",
+    {
+      position: "absolute",
+      top: "28px",
+      right: "36px",
+      fontSize: "18px",
+      fontWeight: "700",
+      letterSpacing: "0.15em",
+      color: "rgba(244,245,247,0.9)",
+      padding: "6px 16px",
+      borderRadius: "999px",
+      background: "rgba(10,11,15,0.45)",
+    },
+    `${slide.meta.kicker}  ${String(slide.meta.index + 1).padStart(2, "0")} / ${String(slide.meta.total).padStart(2, "0")}`,
+  );
+
+  const text = el("div", {
+    position: "relative",
+    padding: "0 96px 72px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  });
+  text.append(heading(slide.meta.title, "56px"));
+  if (slide.meta.caption) {
+    text.append(
+      el(
+        "p",
+        { margin: "0", fontSize: "27px", fontWeight: "500", color: "rgba(244,245,247,0.88)" },
+        slide.meta.caption,
+      ),
+    );
+  }
+  root.append(progress, text);
+  return root;
+}
+
+// もくじ(ボード):カテゴリの章扉スライドを写真カードとして並べ、クリックでジャンプ。
 function boardLayout(slide, ctx) {
   const root = slideRoot();
   root.append(kicker(slide.meta.kicker), heading(slide.meta.title), accentBar());
 
   const grid = el("div", {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    display: "flex",
     gap: "20px",
-    marginTop: "40px",
+    marginTop: "44px",
+    flex: "1",
+    alignItems: "stretch",
   });
 
   ctx.slides.forEach((target, index) => {
-    if (target.meta.layout === "board") return; // ボード自身は並べない
+    if (target.meta.layout !== "cover") return;
     const card = el(
       "button",
       {
-        textAlign: "left",
+        position: "relative",
+        flex: "1",
         cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        padding: "20px 22px",
-        background: theme.surface,
+        overflow: "hidden",
+        padding: "0",
         border: `1px solid ${theme.border}`,
-        borderRadius: "14px",
+        borderRadius: "18px",
+        background: theme.surface,
         color: theme.text,
         font: "inherit",
+        display: "flex",
+        alignItems: "flex-end",
+        transition: "transform 0.2s ease, border-color 0.2s ease",
       },
       [
+        ...(target.meta.image
+          ? fullBleedImage(
+              target.meta.image,
+              "linear-gradient(to top, rgba(10,11,15,0.9) 0%, rgba(10,11,15,0.15) 60%)",
+            )
+          : []),
         el(
-          "span",
-          { fontSize: "16px", fontWeight: "700", color: theme.accent },
-          String(index + 1).padStart(2, "0"),
+          "div",
+          {
+            position: "relative",
+            width: "100%",
+            padding: "0 18px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            textAlign: "left",
+          },
+          [
+            el(
+              "span",
+              { fontSize: "15px", fontWeight: "700", color: theme.accent },
+              String(index + 1).padStart(2, "0"),
+            ),
+            el(
+              "span",
+              { fontSize: "30px", fontWeight: "900", lineHeight: "1.2" },
+              target.meta.title,
+            ),
+            target.meta.subtitle
+              ? el(
+                  "span",
+                  { fontSize: "15px", color: "rgba(244,245,247,0.75)" },
+                  target.meta.subtitle,
+                )
+              : null,
+          ],
         ),
-        el("span", { fontSize: "22px", fontWeight: "700", lineHeight: "1.3" }, target.meta.title),
       ],
     );
     card.addEventListener("mouseenter", () => {
       card.style.borderColor = theme.accent;
+      card.style.transform = "translateY(-6px)";
     });
     card.addEventListener("mouseleave", () => {
       card.style.borderColor = theme.border;
+      card.style.transform = "translateY(0)";
     });
     card.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -262,8 +375,9 @@ function boardLayout(slide, ctx) {
 
 const layouts = {
   content: contentLayout,
-  columns: columnsLayout,
   goal: goalLayout,
+  cover: coverLayout,
+  galleryItem: galleryItemLayout,
   board: boardLayout,
 };
 
