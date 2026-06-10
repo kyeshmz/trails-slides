@@ -118,9 +118,11 @@ assets/
 
 ## 画像の出どころ
 
-作品写真・章扉写真は kyeshimizu.com から取得。ロゴは各公式サイトと
-Wikimedia Commons から取得(Sony CSL は on-dark のワードマークしか無いため、
-エンブレム部分を切り出して `sonycsl-emblem.png` として使用)。
+作品ギャラリーの写真は kyeshimizu.com から取得(本人の作品なので OK)。
+章扉(covers)の写真は **Unsplash のストックフォト**(本人の作品写真は
+使わない方針)。ロゴは各公式サイトと Wikimedia Commons から取得
+(Sony CSL は on-dark のワードマークしか無いため、エンブレム部分を
+切り出して `sonycsl-emblem.png` として使用)。
 
 ## Git
 
