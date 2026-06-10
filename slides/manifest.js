@@ -3,9 +3,9 @@
 // gallery レイアウトのファイルは 1 作品 = 1 スライドに展開される。
 export const manifest = [
   "01-intro.md",
+  "04-works.md",
   "02-goal.md",
   "03-education.md",
-  "04-works.md",
   "10-money-cover.md",
   "11-money.md",
   "12-money-enables.md",

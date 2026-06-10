@@ -64,9 +64,9 @@ assets/
 
 1. 自己紹介(`01-intro.md`, content)
 2. **もくじ / ボード**(自動挿入。`manifest` には無い)
-3. ゴール(`02-goal.md`, goal)— いい感じだと思われたい / ちょいためになる
-4. 3 文字キャリア年表(`03-education.md`, timeline)— ICU → CSL → MIT → ???(KFC/IBM)
-5〜12. 作品ギャラリー(`04-works.md`, gallery → 1 作品 = 1 スライドに展開、8 枚)
+3〜10. 作品ギャラリー(`04-works.md`, gallery → 1 作品 = 1 スライドに展開、8 枚)
+11. ゴール(`02-goal.md`, goal)— いい感じだと思われたい / ちょいためになる
+12. 3 文字キャリア年表(`03-education.md`, timeline)— ICU → CSL → MIT → ???(KFC/IBM)
 13〜17. お金(`10-money-cover.md` 扉 + `11`〜`14`)
 18〜21. 環境 / 旅 / 仕事 / ストーリーテリング(各 `*-cover.md`, cover)
 
